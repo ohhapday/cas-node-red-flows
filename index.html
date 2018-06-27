@@ -1,0 +1,355 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>스마트 자재관리 모니터링</title>
+
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!--Import materialize.css-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/css/materialize.min.css">
+
+    <link rel="stylesheet" href="dist/css/style.css">
+
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script>
+        if (!window.jQuery) { document.write('<script src="bin/jquery-3.2.1.min.js"><\/script>'); }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/js/materialize.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <script>
+        let chart;
+
+        let wsUri;
+        if (location.protocol === "https:") {
+            wsUri = "wss://" + window.location.hostname + ":1880/ws/scaleData";
+        } else {
+            wsUri = "ws://" + window.location.hostname + ":1880/ws/scaleData";
+        }
+
+        function wsConn() {
+            let ws = new WebSocket(wsUri);
+            ws.onmessage = function (m) {
+                // console.log('[@.@] ' + new Date().toLocaleString() + m.data);
+                let msg = JSON.parse(m.data);
+                console.log(msg);
+
+                let data = google.visualization.arrayToDataTable([
+                    ['Label', 'Value'],
+                    ['', 80]
+                ]);
+
+                let options = {
+                    width: 800, height: 220,
+                    redFrom: 0, redTo: 10,
+                    yellowFrom: 10, yellowTo: 25,
+                    minorTicks: 5
+                };
+
+                data.setValue(0, 1, msg.weightData.weight);
+                chart[msg.weightData.scaleID - 1].draw(data, options);
+
+                let card_title = document.querySelectorAll('.card-title');
+                card_title[msg.weightData.scaleID - 1].innerText = `${msg.weightData.scaleName}`;
+
+                let scale_weight = document.querySelectorAll('.scale_weight');
+                scale_weight[msg.weightData.scaleID - 1].innerText = `${msg.weightData.weight} ${msg.weightData.unit}`;
+
+                let unit_weight = document.querySelectorAll('.unit_weight');
+                unit_weight[msg.weightData.scaleID - 1].innerText = `${msg.weightData.unitPerWeight} ${msg.weightData.unit}`;
+
+                let scale_ea = document.querySelectorAll('.scale_ea');
+                scale_ea[msg.weightData.scaleID - 1].innerText = `${(msg.weightData.weight / msg.weightData.unitPerWeight).toFixed(1)} 개`;
+
+                let scaleInfo = `
+                    그룹명: ${msg.weightData.groupName}<br>
+                    저울명: ${msg.weightData.scaleName}<br>
+                    중량: ${msg.weightData.weight}<br>
+                    전송시간: ${msg.weightData.sendTime}
+                `;
+                document.querySelector('.scale-info').innerHTML = scaleInfo;
+            };
+            ws.onopen = function () {
+                console.log("[@.@] connecting...");
+            };
+            ws.onclose = function () {
+                ws = null;
+                setTimeout(wsConn, 10000);
+            };
+            ws.onerror = function () {
+                console.log("[@.@] connection error");
+            }
+        }
+
+        wsConn();
+
+        google.charts.load('current', {'packages': ['gauge']});
+        google.charts.setOnLoadCallback(drawChart);
+
+        function drawChart() {
+            let data = google.visualization.arrayToDataTable([
+                ['Label', 'Value'],
+                ['', 0]
+            ]);
+
+            let options = {
+                width: 800, height: 220,
+                redFrom: 0, redTo: 10,
+                yellowFrom: 10, yellowTo: 25,
+                minorTicks: 5
+            };
+
+            chart = [
+                new google.visualization.Gauge(document.querySelectorAll('.chart_div')[0]),
+                new google.visualization.Gauge(document.querySelectorAll('.chart_div')[1]),
+                new google.visualization.Gauge(document.querySelectorAll('.chart_div')[2]),
+                new google.visualization.Gauge(document.querySelectorAll('.chart_div')[3]),
+                new google.visualization.Gauge(document.querySelectorAll('.chart_div')[4]),
+                new google.visualization.Gauge(document.querySelectorAll('.chart_div')[5]),
+                new google.visualization.Gauge(document.querySelectorAll('.chart_div')[6]),
+                new google.visualization.Gauge(document.querySelectorAll('.chart_div')[7])
+            ];
+
+            chart[0].draw(data, options);
+            chart[1].draw(data, options);
+            chart[2].draw(data, options);
+            chart[3].draw(data, options);
+            chart[4].draw(data, options);
+            chart[5].draw(data, options);
+            chart[6].draw(data, options);
+            chart[7].draw(data, options);
+
+            /*
+            setInterval(function () {
+                data.setValue(0, 1, 40 + Math.round(60 * Math.random()));
+                chart[0].draw(data, options);
+                chart[1].draw(data, options);
+                chart[2].draw(data, options);
+                chart[3].draw(data, options);
+            }, 5000);
+            */
+        }
+    </script>
+</head>
+<body>
+
+<div id="breadcrumbs-wrapper">
+    <div class="container">
+        <div class="row">
+            <div class="col s10 m6 l6">
+                <h5 class="breadcrumbs-title">그룹명 자리</h5>
+                <h5 class="scale-info" style="font-size: 1rem">정보</h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="section">
+
+        <div class="divider"></div>
+        <div id="contact-page" class="card">
+
+            <div class="card-content">
+                <div class="row">
+
+                    <div class="col s12 m3">
+                        <div class="card">
+                            <div class="card-content blue lighten-1 center">
+                                <h6 class="card-title white-text font-weight-400 mb-0">저울명 자리</h6>
+                                <div class="chart_div" style="width: 240px; height: 240px;"></div>
+                            </div>
+                            <div class="card-action blue border-non center">
+                                <h5 class="white-text lighten-4">
+                                    <span>중량</span>
+                                    <span class="scale_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개당 중량</span>
+                                    <span class="unit_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개수</span>
+                                    <span class="scale_ea"></span>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col s12 m3">
+                        <div class="card">
+                            <div class="card-content blue lighten-1 center">
+                                <h6 class="card-title white-text font-weight-400 mb-0">저울명 자리</h6>
+                                <div class="chart_div" style="width: 240px; height: 240px;"></div>
+                            </div>
+                            <div class="card-action blue border-non center">
+                                <h5 class="white-text lighten-4">
+                                    <span>중량</span>
+                                    <span class="scale_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개당 중량</span>
+                                    <span class="unit_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개수</span>
+                                    <span class="scale_ea"></span>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col s12 m3">
+                        <div class="card">
+                            <div class="card-content blue lighten-1 center">
+                                <h6 class="card-title white-text font-weight-400 mb-0">저울명 자리</h6>
+                                <div class="chart_div" style="width: 240px; height: 240px;"></div>
+                            </div>
+                            <div class="card-action blue border-non center">
+                                <h5 class="white-text lighten-4">
+                                    <span>중량</span>
+                                    <span class="scale_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개당 중량</span>
+                                    <span class="unit_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개수</span>
+                                    <span class="scale_ea"></span>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col s12 m3">
+                        <div class="card">
+                            <div class="card-content blue lighten-1 center">
+                                <h6 class="card-title white-text font-weight-400 mb-0">저울명 자리</h6>
+                                <div class="chart_div" style="width: 240px; height: 240px;"></div>
+                            </div>
+                            <div class="card-action blue border-non center">
+                                <h5 class="white-text lighten-4">
+                                    <span>중량</span>
+                                    <span class="scale_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개당 중량</span>
+                                    <span class="unit_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개수</span>
+                                    <span class="scale_ea"></span>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="row">
+
+                    <div class="col s12 m3">
+                        <div class="card">
+                            <div class="card-content blue lighten-1 center">
+                                <h6 class="card-title white-text font-weight-400 mb-0">저울명 자리</h6>
+                                <div class="chart_div" style="width: 240px; height: 240px;"></div>
+                            </div>
+                            <div class="card-action blue border-non center">
+                                <h5 class="white-text lighten-4">
+                                    <span>중량</span>
+                                    <span class="scale_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개당 중량</span>
+                                    <span class="unit_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개수</span>
+                                    <span class="scale_ea"></span>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col s12 m3">
+                        <div class="card">
+                            <div class="card-content blue lighten-1 center">
+                                <h6 class="card-title white-text font-weight-400 mb-0">저울명 자리</h6>
+                                <div class="chart_div" style="width: 240px; height: 240px;"></div>
+                            </div>
+                            <div class="card-action blue border-non center">
+                                <h5 class="white-text lighten-4">
+                                    <span>중량</span>
+                                    <span class="scale_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개당 중량</span>
+                                    <span class="unit_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개수</span>
+                                    <span class="scale_ea"></span>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col s12 m3">
+                        <div class="card">
+                            <div class="card-content blue lighten-1 center">
+                                <h6 class="card-title white-text font-weight-400 mb-0">저울명 자리</h6>
+                                <div class="chart_div" style="width: 240px; height: 240px;"></div>
+                            </div>
+                            <div class="card-action blue border-non center">
+                                <h5 class="white-text lighten-4">
+                                    <span>중량</span>
+                                    <span class="scale_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개당 중량</span>
+                                    <span class="unit_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개수</span>
+                                    <span class="scale_ea"></span>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col s12 m3">
+                        <div class="card">
+                            <div class="card-content blue lighten-1 center">
+                                <h6 class="card-title white-text font-weight-400 mb-0">저울명 자리</h6>
+                                <div class="chart_div" style="width: 240px; height: 240px;"></div>
+                            </div>
+                            <div class="card-action blue border-non center">
+                                <h5 class="white-text lighten-4">
+                                    <span>중량</span>
+                                    <span class="scale_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개당 중량</span>
+                                    <span class="unit_weight"></span>
+                                </h5>
+                                <h5 class="white-text lighten-4">
+                                    <span>개수</span>
+                                    <span class="scale_ea"></span>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
